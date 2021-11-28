@@ -118,7 +118,7 @@ app.get("/", function(req, res){
 	);
 	} 
 	else {
-		connection.query('SELECT Name, Length, Video, Thumbnail FROM tblVideo;', function(err, results, fields) {
+		connection.query('SELECT Name, Length, Video, Thumbnail FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
 			console.log(results);
 			res.send(JSON.stringify(results));
 		}
