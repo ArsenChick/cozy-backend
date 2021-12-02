@@ -110,7 +110,7 @@ app.get("/", function(req, res){
 	a = req.query.codec;
 	b = req.query.video;
 	if(a != null && b != null){
-		connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ a + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Hash = \'' + b + '\');', function(err, results, fields) {
+		connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ a + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + b + '\');', function(err, results, fields) {
 			console.log(results);
 			res.send(JSON.stringify(results));
 		}
@@ -118,7 +118,7 @@ app.get("/", function(req, res){
 	);
 	} 
 	else {
-		connection.query('SELECT Name, Length, Video, Thumbnail FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
+		connection.query('SELECT Name, Length, Video FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
 			console.log(results);
 			res.send(JSON.stringify(results));
 		}
