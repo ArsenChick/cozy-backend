@@ -2,13 +2,17 @@ var express = require("express");
 var http = require('http');
 const mysql = require("mysql2");
 
+/*const connection = mysql.createConnection({
+  host: 'localhost',
+  user: 'root',
+  database: 'cozydb'
+});*/
 const connection = mysql.createConnection({
   host: 'localhost',
   user: 'user',
   password: 'iuSh8ahV',
   database: 'CozyDB'
 });
-
 const multer = require('multer');
 
 var hash = "";
@@ -88,10 +92,10 @@ async function generateHash(){ //Генерация хэша и проверка
 		console.log(q);
 		let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
 			
-			console.log(flag);
 			resolve(res);
-		})});
-		flag = await promise;
+		}), q});
+		ret = await promise;
+		flag = ret[0].num;
 		console.log(flag);
 		//flag = 0;
 	}
@@ -101,24 +105,54 @@ async function generateHash(){ //Генерация хэша и проверка
 connectt = function (callback) {
 	connection.query(q, function(err, results, fields) {
 			console.log(results);
-			return callback(results[0].num);
-});
-			}
+			return callback(results);
+	});
+}
 
 // Обработка get-запроса
-app.get("/", function(req, res){
-	a = req.query.codec;
-	b = req.query.video;
-	if(a != null && b != null){
-		connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ a + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + b + '\');', function(err, results, fields) {
+app.get("/", async function(req, res){
+	a = req.query.video;
+	if(a != null){
+		console.log(a);
+		var r = [];
+		b = 'libvpx';
+		/*connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');', function(err, results, fields) {
 			console.log(results);
-			res.send(JSON.stringify(results));
+			r[b] = results;
+			console.log(r);
+			//res.send(JSON.stringify(results));
+		});*/
+		q = 'select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');';
+		let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
+			
+			resolve(res);
+		}), q});
+		r[b] = await promise;
+		b = 'libx264';
+		q = 'select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');';
+		
+		let promise2 = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
+			
+			resolve(res);
+		}), q});
+		r[b] = await promise2;
+		
+		/*connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');', function(err, results, fields) {
+			console.log(results);
+			r[b] = results;
+			console.log(r);
+			res.send(r);
+			//res.send(JSON.stringify(r));
 		}
-	
-	);
+	);*/
+		console.log(r);
+		res.send({
+			'libvpx': r['libvpx'],
+			'libx264': r['libx264']
+		});
 	} 
 	else {
-		connection.query('SELECT Name, Length, Video FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
+		connection.query('SELECT name, length, video, thumbnail FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
 			console.log(results);
 			res.send(JSON.stringify(results));
 		}
@@ -132,7 +166,7 @@ app.get("/", function(req, res){
 app.post('/', upload.single('videofile'), function (req, res) {
 	const title = req.body.title;
 	var author = req.body.author;
-	query = 'INSERT INTO tblVideo VALUES(0, \'' + title + '\', \'' + dateFormat(new Date(), "%Y-%m-%d", true) + '\', 0, \'' + author + '\', \'' + title + '.png\', \'' + hash + '\', 1);'
+	query = 'INSERT INTO tblVideo VALUES(0, \'' + title + '\', \'' + dateFormat(new Date(), "%Y-%m-%d", true) + '\', 0, \'' + author + '\', \'' + hash + '\', 1);'
 	console.log(query);
 	/*connection.query(query, function(err, results, fields) {
 			console.log(results);
