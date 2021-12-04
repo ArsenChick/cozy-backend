@@ -111,53 +111,35 @@ connectt = function (callback) {
 
 // Обработка get-запроса
 app.get("/", async function(req, res){
-	a = req.query.video;
+	var a = req.query.video;
 	if(a != null){
 		console.log(a);
 		var r = [];
-		b = 'libvpx';
-		/*connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');', function(err, results, fields) {
-			console.log(results);
-			r[b] = results;
-			console.log(r);
-			//res.send(JSON.stringify(results));
-		});*/
-		q = 'select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');';
-		let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
-			
-			resolve(res);
-		}), q});
-		r[b] = await promise;
-		b = 'libx264';
-		q = 'select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');';
-		
-		let promise2 = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
-			
-			resolve(res);
-		}), q});
-		r[b] = await promise2;
-		
-		/*connection.query('select tblLinks.Quality, tblLinks.Link from tblLinks,	tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblCodec.Codec = \''+ b + '\') AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\');', function(err, results, fields) {
-			console.log(results);
-			r[b] = results;
-			console.log(r);
-			res.send(r);
-			//res.send(JSON.stringify(r));
-		}
-	);*/
+		var qualities = ['240','360','480','720'];
+		for(let i = 0; i < qualities.length; i++){
+			q = 'select tblCodec.Codec, tblLinks.Link from tblLinks, tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\') AND (tblLinks.Quality = \'' + qualities[i].toString() + '\');';
+			let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
+				resolve(res);
+			}), q});
+			r['q' + qualities[i].toString()] = await promise;
+
+		};
 		console.log(r);
-		res.send({
-			'libvpx': r['libvpx'],
-			'libx264': r['libx264']
-		});
+		var re = {};
+		for(let i = 0; i < qualities.length; i++){
+			if(r['q' + qualities[i]].length > 0){
+				re[qualities[i]] = r['q' + qualities[i]];
+			}
+		}
+		console.log(re);
+		res.send(re);
+
 	} 
 	else {
-		connection.query('SELECT name, length, video, thumbnail FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
+		connection.query('SELECT name, length, video FROM tblVideo WHERE IsUploaded = 1;', function(err, results, fields) {
 			console.log(results);
 			res.send(JSON.stringify(results));
-		}
-	
-	);
+		});
 	}
 });
 
