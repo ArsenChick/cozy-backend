@@ -2,8 +2,7 @@
   "name": "node",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
-  "type": "module",
+  "main": "send.js",
   "dependencies": {
     "express": "^4.17.1",
     "ffmpeg": "^0.0.4",
