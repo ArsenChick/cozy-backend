@@ -139,7 +139,8 @@ app.get("/", async function(req, res){
 		
 		var full = {};
 		full['qualities'] = re;
-		full['info'] = info;
+		full['author'] = info[0].author;
+		full['name'] = info[0].name;
 		res.send(full);
 
 	} 
