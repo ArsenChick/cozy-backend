@@ -104,7 +104,7 @@ async function generateHash(){ //Генерация хэша и проверка
 
 connectt = function (callback) {
 	connection.query(q, function(err, results, fields) {
-			console.log(results);
+			//console.log(results);
 			return callback(results);
 	});
 }
@@ -117,22 +117,30 @@ app.get("/", async function(req, res){
 		var r = [];
 		var qualities = ['240','360','480','720'];
 		for(let i = 0; i < qualities.length; i++){
-			q = 'select tblCodec.Codec, tblLinks.Link from tblLinks, tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\') AND (tblLinks.Quality = \'' + qualities[i].toString() + '\');';
+			q = 'select tblCodec.codec, tblLinks.link from tblLinks, tblCodec, tblVideo where (tblCodec.idCodec = tblLinks.idCodec) AND (tblVideo.idVid = tblLinks.idVid) AND (tblVideo.Video = \'' + a + '\') AND (tblLinks.Quality = \'' + qualities[i].toString() + '\');';
 			let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
 				resolve(res);
 			}), q});
 			r['q' + qualities[i].toString()] = await promise;
 
 		};
-		console.log(r);
 		var re = {};
 		for(let i = 0; i < qualities.length; i++){
 			if(r['q' + qualities[i]].length > 0){
 				re[qualities[i]] = r['q' + qualities[i]];
 			}
 		}
-		console.log(re);
-		res.send(re);
+		q = 'select name, author from tblVideo where video=\'' + a + '\';';
+		let promise2 = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
+				resolve(res);
+			}), q});
+		
+		var info = await promise2;
+		
+		var full = {};
+		full['qualities'] = re;
+		full['info'] = info;
+		res.send(full);
 
 	} 
 	else {
