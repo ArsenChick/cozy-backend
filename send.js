@@ -1,27 +1,39 @@
-var express = require("express");
-var http = require('http');
-const mysql = require("mysql2");
+/*import express from 'express';
+import http from 'http';
+import mysql2 from 'mysql2';
+import multer from 'multer';
+import "regenerator-runtime/runtime.js";
 
-/*const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  database: 'cozydb'
-});*/
+const mysql = mysql2;*/
+const func = require('./func');
+var express = require('express');
+var http = require('http');
+const mysql = require('mysql2');
+const multer = require('multer');
+
 const connection = mysql.createConnection({
+	host: 'localhost',
+	user: 'root',
+	database: 'cozydb'
+	});
+/*const connection = mysql.createConnection({
   host: 'localhost',
   user: 'user',
   password: 'iuSh8ahV',
   database: 'CozyDB'
-});
-const multer = require('multer');
+});*/
 
 var hash = "";
+var q = "";
+var b = "";
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
+	  
     cb(null, './upload/') // Папка куда кидаются загруженные файлы
   },
   filename: async function (req, file, cb) {
-	hash = await generateHash();
+	console.log(file);
+	hash = await func.generateHash();
 	console.log(hash);
     cb(null, hash + '.mp4')
   }
@@ -56,53 +68,13 @@ app.use(function (req, res, next) {
     next();
 });
 
-function dateFormat (date, fstr, utc) {
-  utc = utc ? 'getUTC' : 'get';
-  return fstr.replace (/%[YmdHMS]/g, function (m) {
-    switch (m) {
-    case '%Y': return date[utc + 'FullYear'] (); // no leading zeros required
-    case '%m': m = 1 + date[utc + 'Month'] (); break;
-    case '%d': m = date[utc + 'Date'] (); break;
-    case '%H': m = date[utc + 'Hours'] (); break;
-    case '%M': m = date[utc + 'Minutes'] (); break;
-    case '%S': m = date[utc + 'Seconds'] (); break;
-    default: return m.slice (1); // unknown code, remove %
-    }
-    // add leading zero if required
-    return ('0' + m).slice (-2);
-  });
-}
 
 
-function getRandomInt(max) {
-  return Math.floor(Math.random() * max);
-}
 
-async function generateHash(){ //Генерация хэша и проверка на наличие
-	var flag = 1;
-	var i = 1;
-	while (flag == 1) {
-		var h = "";
-		var alphabet="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
-		for (let i = 0; i < 10; i++) {
-			h = h + alphabet[getRandomInt(alphabet.length)];
-		}
-		q = 'SELECT Count(Name) as num FROM tblVideo WHERE Video = \'' + h + '\';';
-		
-		console.log(q);
-		let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
-			
-			resolve(res);
-		}), q});
-		ret = await promise;
-		flag = ret[0].num;
-		console.log(flag);
-		//flag = 0;
-	}
-	return h;
-}
 
-connectt = function (callback) {
+
+
+var connectt = function (callback) {
 	connection.query(q, function(err, results, fields) {
 			//console.log(results);
 			return callback(results);
@@ -154,22 +126,30 @@ app.get("/", async function(req, res){
 
 
 // Обработка post-запроса
-app.post('/', upload.single('videofile'), function (req, res) {
+app.post('/', upload.single('videofile'), async function (req, res) {
+	/*const connection = mysql.createConnection({
+	host: 'localhost',
+	user: 'root',
+	database: 'cozydb'
+	});*/
 	const title = req.body.title;
 	var author = req.body.author;
-	query = 'INSERT INTO tblVideo VALUES(0, \'' + title + '\', \'' + dateFormat(new Date(), "%Y-%m-%d", true) + '\', 0, \'' + author + '\', \'' + hash + '\', 1);'
-	console.log(query);
-	/*connection.query(query, function(err, results, fields) {
-			console.log(results);
-			res.send(JSON.stringify(results));
-		}*/
+	var len = await func.getData('./upload/' +  hash + '.mp4');
+	console.log(len);
+	q = 'INSERT INTO tblVideo VALUES(0, \'' + title + '\', \'' + func.dateFormat(new Date(), "%Y-%m-%d", true) + '\', 0, \'' + author + '\', \'' + hash + '\', ' + Math.round(len[0]) +');'
+	console.log(q);
+	let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
+			
+			resolve(res);
+		}), q});
+	ret = await promise;
 	res.send({
 		'title': title,
-		'author': author
+		'author': author,
+		'video': hash
 	});
 });
 
-
 app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}`)
-})
+  console.log(`Send listening at http://localhost:${port}`)
+});
