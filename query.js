@@ -25,7 +25,7 @@ const connection = mysql.createConnection({
 });
 
 async function process() {
-	_q = 'select * from tblCodec';
+	_q = 'select * from tblCodec;';
 
 	let promise = new Promise((resolve, reject) => { connectt(function(res){ 
 		resolve(res);
@@ -35,9 +35,16 @@ async function process() {
 	var codecs = data;
 	var codecs_len = data.length;
 
+	_q = 'select Video from tblVideo where isUploaded = 0;'
+	let promise2 = new Promise((resolve, reject) => { connectt(function(res){ 
+		resolve(res);
+	})});
+
+	let data2 = await promise2;
+	var videos = data2;
 	//callEveryHour();
 	//setInterval(query(codecs, codecs_len), 1000 * 60 * 60);
-	query(codecs, codecs_len);
+	query(codecs, codecs_len, videos);
 }
 
 
@@ -45,22 +52,6 @@ connectt = function (callback) {
 	connection.query(_q, function(err, results, fields) {
 		return callback(results);
 	});
-}
-
-getDuration = function (callback, path) {
-	console.log(path);
-	ffmpeg.ffprobe(path, function(err, metadata) {
-		if (err) {
-			console.error(err);
-		} else {
-			duration = metadata.streams[0].duration;
-			h = metadata.streams[0].height;
-		}
-	});
-
-	cool = [duration, h];
-
-	return callback(cool);
 }
 
 async function getData(path) {
@@ -81,11 +72,41 @@ async function getData(path) {
 	return result;
 }
 
-async function query(codecs, codecs_len) {
+function ffmpegSync(path, quality, codec, path_to_save, ext){
+	return new Promise((resolve,reject)=>{
+		ffmpeg(path)
+			.size('?x' + quality)
+	   		.videoCodec(codec)
+	   		.save(path_to_save + quality+ ext)
+		  	.on('end', () => {
+				resolve(1)
+		  	})
+		  	.on('error',(err)=>{
+				return reject(0)
+		  	})
+	})
+}
+
+async function query(codecs, codecs_len, videos) {
 	//interval = interval * 1000 * 6 * 15; // remove later
 
 	const start = new Date().getTime();
-	const files = fs.readdirSync(dir);
+	const real_files = fs.readdirSync(dir);
+
+	var files = [];
+
+	for (var i = 0; i < real_files.length; i++) {
+		for (var j = 0; j < videos.length; j++) {
+			console.log(real_files[i].split('.')[0]);
+			console.log(videos[j].Video);
+			if (real_files[i].split('.')[0] == videos[j].Video) {
+				files.push(real_files[i]);
+			}
+		}
+	}
+
+	console.log(videos);
+	console.log(real_files);
 
 	_codecs = ['libvpx', 'libx264'];
 
@@ -97,7 +118,7 @@ async function query(codecs, codecs_len) {
 		console.log(path);
 
 		// get videoId from DB
-		_q = 'select idVid, isUploaded from tblvideo where Video = \'' + files[k].split('.')[0] + '\'';
+		_q = 'select idVid, isUploaded from tblvideo where Video = \'' + files[k].split('.')[0] + '\';';
 		let promise = new Promise((resolve, reject) => { connectt(function(res){ 
 			resolve(res);
 		})});
@@ -108,10 +129,10 @@ async function query(codecs, codecs_len) {
 		console.log(isUploaded);
 
 		// kostyl :)
-		if (isUploaded == '1' || isUploaded == 1) {
+		/*if (isUploaded == '1' || isUploaded == 1) {
 			console.log('skipping: ', files[k]);
 			continue;
-		}
+		}*/
 
 		// get video duration and quality
 		var data2 = await getData(path);
@@ -125,6 +146,8 @@ async function query(codecs, codecs_len) {
 			folder: thumbs,
 			filename: files[k].split('.')[0] + '.png'
 		});
+
+		var total_positives = 0;
 
 		for (let i = 0; i < _codecs.length; i++) {
 			for (let j = 0; j < qualities.length; j++) {
@@ -143,10 +166,11 @@ async function query(codecs, codecs_len) {
 
 				path_to_save = res + files[k].split('.')[0];
 				
-				ffmpeg(path)
-				.size('?x' + qualities[j])
-				.videoCodec(_codecs[i])
-				.save(path_to_save + qualities[j] + ext);
+
+				console.log('processing: ', path_to_save + qualities[j] + ext);
+				var result = await ffmpegSync(path, qualities[j], _codecs[i], path_to_save, ext);
+				console.log(result);
+				console.log('finished: ', path_to_save);
 
 				console.log('Video name: ', files[k].split('.')[0] + qualities[j] + ext);
 				console.log('Video quality: ', qualities[j]);
@@ -156,36 +180,49 @@ async function query(codecs, codecs_len) {
 				console.log();
 
 				//update tblLinks
-				_q = 'INSERT INTO tblLinks (idVid, Quality, idCodec, Link) VALUES ' +
-				'(' + videoId + ', ' + qualities[j] + ', ' + codecs[i].idCodec + 
-				', \'' + files[k].split('.')[0] + qualities[j] + ext + '\');';	
+				if (result == 1) {
+					total_positives += 1;
 
-				let promise = new Promise((resolve, reject) => { connectt(function(res){ 
-					resolve(res);
-				})});
-			
-				let data = await promise;
+					_q = 'INSERT INTO tblLinks (idVid, Quality, idCodec, Link) VALUES ' +
+					'(' + videoId + ', ' + qualities[j] + ', ' + codecs[i].idCodec + 
+					', \'' + files[k].split('.')[0] + qualities[j] + ext + '\');';	
+
+					let promise = new Promise((resolve, reject) => { connectt(function(res){ 
+						resolve(res);
+					})});
+				
+					let data = await promise;
+				} else {
+					// delete file
+					fs.unlink(res + files[k], (err) => {
+						console.log('Deleted: ', file);
+					});
+				}
 			}
 		}
 
 		//update tblVideo
-		_q = 'update tblVideo set IsUploaded = 1 where idVid = ' + videoId + ';';
-		let promise4 = new Promise((resolve, reject) => { connectt(function(res){ 
-			resolve(res);
-		})});
-	
-		let data4 = await promise4;
-	}
+		if (total_positives != 0) {
+			_q = 'update tblVideo set IsUploaded = 1 where idVid = ' + videoId + ';';
+			let promise4 = new Promise((resolve, reject) => { connectt(function(res){ 
+				resolve(res);
+			})});
+		
+			let data4 = await promise4;
+		}
 
+		console.log('finished...');
+		total_positives = 0;
+	}
+/*
 	fs.readdir(dir, (err, files) => {
 		for (const file of files) {
 			fs.unlink(dir + file, (err) => {
 				console.log('Deleted: ', file);
 			});
 		}
-	});
-
-	console.log('im here');
+	});*/
+}
 
 /*
 	const end =  new Date().getTime();
@@ -194,7 +231,6 @@ async function query(codecs, codecs_len) {
 		console.log('Processing was too long, starting ASAP');
 		query();
 	}*/
-}
 
 //function callEveryHour() {
     //setInterval(query, 1000 * 60 * 60); // Каждый час
