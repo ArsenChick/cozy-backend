@@ -111,8 +111,10 @@ app.get("/", async function(req, res){
 		
 		var full = {};
 		full['qualities'] = re;
-		full['author'] = info[0].author;
-		full['name'] = info[0].name;
+		if(info.length != 0){
+			full['author'] = info[0].author;
+			full['name'] = info[0].name;
+		}
 		res.send(full);
 
 	} 
@@ -136,6 +138,7 @@ app.post('/', upload.single('videofile'), async function (req, res) {
 	var author = req.body.author;
 	var len = await func.getData('./upload/' +  hash + '.mp4');
 	console.log(len);
+	if(!len) res.status(500).send({status : 'not OK'});
 	q = 'INSERT INTO tblVideo VALUES(0, \'' + title + '\', \'' + func.dateFormat(new Date(), "%Y-%m-%d", true) + '\', 0, \'' + author + '\', \'' + hash + '\', ' + Math.round(len[0]) +');'
 	console.log(q);
 	let promise = new Promise((resolve, reject) => {connectt(function(res){  // Дожидаемся обработки запроса
@@ -143,11 +146,8 @@ app.post('/', upload.single('videofile'), async function (req, res) {
 			resolve(res);
 		}), q});
 	ret = await promise;
-	res.send({
-		'title': title,
-		'author': author,
-		'video': hash
-	});
+	
+	res.status(200).send({ status: 'OK'});
 });
 
 app.listen(port, () => {
