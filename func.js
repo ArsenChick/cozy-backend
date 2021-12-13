@@ -14,12 +14,13 @@ async function getData(path) {
 	let promise2 = new Promise((resolve, reject) => { 
 		ffmpeg.ffprobe(path, function(err, metadata) {
 			if (err) {
-				console.error(err);
+				//console.error(err);
+				resolve(undefined);
 			} else {
 				//console.log(metadata);
-				duration = metadata.streams[0].duration;
-				h = metadata.streams[0].height;
-				cool = [duration, h];
+				var duration = metadata.streams[0].duration;
+				var h = metadata.streams[0].height;
+				var cool = [duration, h];
 				resolve(cool);
 			}
 		});
@@ -45,10 +46,10 @@ function dateFormat (date, fstr, utc) {
     return ('0' + m).slice (-2);
   });
 }
+
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
-
 
 async function generateHash(){ //Генерация хэша и проверка на наличие
 	var flag = 1;
@@ -70,15 +71,15 @@ async function generateHash(){ //Генерация хэша и проверка
 		for (let i = 0; i < 10; i++) {
 			h = h + alphabet[getRandomInt(alphabet.length)];
 		}
-		q = 'SELECT Count(Name) as num FROM tblVideo WHERE Video = \'' + h + '\';';
+		let q = 'SELECT Count(Name) as num FROM tblVideo WHERE Video = \'' + h + '\';';
 		let promise2 = new Promise((resolve, reject) => { 
 			connection.query(q, function(err, results, fields) {
 				resolve(results);
 			});
 		});
-		ret = await promise2;
+		var ret = await promise2;
 		flag = ret[0].num;
-		console.log(flag);
+		//console.log(flag);
 		//flag = 0;
 	}
 	connection.close();
