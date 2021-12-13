@@ -82,7 +82,7 @@ async function generateHash(){ //Генерация хэша и проверка
 		//console.log(flag);
 		//flag = 0;
 	}
-	connection.close();
+	connection.end();
 	return h;
 }
 
