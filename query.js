@@ -20,9 +20,9 @@ var interval = 10;
 _q = '';
 
 const connection = mysql.createConnection({
-	host: 'localhost',
-	user: 'root',
-	database: 'db'	
+    host: 'localhost',
+    user: 'root',
+    database: 'db'	
 });
 
 async function process() {
@@ -37,7 +37,7 @@ async function process() {
 	var codecs_len = data.length;
 
 	_q = 'select Video from tblVideo where isUploaded = 0;'
-	let promise2 = new Promise((resolve, reject) => { connectt(function(res){ 
+	let promise2 = new Promise((resolve, reject) => { connectt(function(res){
 		resolve(res);
 	})});
 
@@ -71,28 +71,28 @@ async function getData(path) {
 
 	let result = await promise2;
 	return result;
-}
+	}
 
-function ffmpegSync(path, quality, codec, path_to_save, ext){
+	function ffmpegSync(path, quality, codec, path_to_save, ext){
 	return new Promise((resolve,reject)=>{
 		ffmpeg(path)
 			.size('?x' + quality)
-	   		.videoCodec(codec)
-	   		.save(path_to_save + quality+ ext)
-		  	.on('end', () => {
+			.videoCodec(codec)
+			.save(path_to_save + quality+ ext)
+			.on('end', () => {
 				resolve(1)
-		  	})
-		  	.on('error',(err)=>{
+			})
+			.on('error',(err)=>{
 				return reject(0)
-		  	})
+			})
 	})
-}
+	}
 
-async function query(codecs, codecs_len, videos) {
+	async function query(codecs, codecs_len, videos) {
 	const start_time = new Date().getTime();
 	//interval = interval * 1000 * 6 * 15; // remove later
 
-    console.log("Starting...")
+	console.log("Starting...")
 
 	const start = new Date().getTime();
 	const real_files = fs.readdirSync(dir);
@@ -128,7 +128,7 @@ async function query(codecs, codecs_len, videos) {
 		let promise = new Promise((resolve, reject) => { connectt(function(res){ 
 			resolve(res);
 		})});
-	
+
 		let data = await promise;
 		var videoId = data[0].idVid;
 		var isUploaded = data[0].isUploaded;
