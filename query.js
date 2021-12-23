@@ -13,6 +13,7 @@ const res = 'C:\\ffmpeg\\'; // куда сувать новые видео
 const thumbs = 'C:\\thumbs\\'; // thumbnails
 
 const qualities = [240, 360, 480, 720];
+const timeout = 1000*10;//1000*60*60;
 
 var interval = 10;
 
@@ -88,7 +89,10 @@ function ffmpegSync(path, quality, codec, path_to_save, ext){
 }
 
 async function query(codecs, codecs_len, videos) {
+	const start_time = new Date().getTime();
 	//interval = interval * 1000 * 6 * 15; // remove later
+
+    console.log("Starting...")
 
 	const start = new Date().getTime();
 	const real_files = fs.readdirSync(dir);
@@ -97,18 +101,20 @@ async function query(codecs, codecs_len, videos) {
 
 	for (var i = 0; i < real_files.length; i++) {
 		for (var j = 0; j < videos.length; j++) {
-			console.log(real_files[i].split('.')[0]);
-			console.log(videos[j].Video);
 			if (real_files[i].split('.')[0] == videos[j].Video) {
 				files.push(real_files[i]);
 			}
 		}
 	}
 
-	console.log(videos);
-	console.log(real_files);
+	console.log("DB files:", videos);
+	console.log("Real files:", real_files);
 
 	_codecs = ['libvpx', 'libx264'];
+
+	if (files.length == 0) {
+		console.log('No videos to work with...');
+	}
 
 	var h = 0;
 	var duration = 0;
@@ -127,12 +133,6 @@ async function query(codecs, codecs_len, videos) {
 		var videoId = data[0].idVid;
 		var isUploaded = data[0].isUploaded;
 		console.log(isUploaded);
-
-		// kostyl :)
-		/*if (isUploaded == '1' || isUploaded == 1) {
-			console.log('skipping: ', files[k]);
-			continue;
-		}*/
 
 		// get video duration and quality
 		var data2 = await getData(path);
@@ -176,7 +176,7 @@ async function query(codecs, codecs_len, videos) {
 				console.log('Video quality: ', qualities[j]);
 				console.log('Video codec (ffmpeg format): ', _codecs[i]);
 				console.log('Video id: ', videoId);
-				console.log('Video codec real name: ', codecs[i].idCodec);
+				console.log('Video codec id: ', codecs[i].idCodec);
 				console.log();
 
 				//update tblLinks
@@ -214,42 +214,27 @@ async function query(codecs, codecs_len, videos) {
 		console.log('finished...');
 		total_positives = 0;
 	}
-/*
-	fs.readdir(dir, (err, files) => {
-		for (const file of files) {
-			fs.unlink(dir + file, (err) => {
-				console.log('Deleted: ', file);
-			});
-		}
-	});*/
+
+	const end_time = new Date().getTime();
+	total_time = end_time - start_time;
+	console.log(total_time);
+
+	if (timeout > total_time) {
+		console.log('Calling query as scheduled...');
+		console.log(timeout-total_time);
+		const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+		await delay(timeout-total_time);
+		process();
+	} else {
+		console.log('Query was working more than planned...');
+		process();
+	}
 }
 
-/*
-	const end =  new Date().getTime();
-
-	if ((end - start) > interval) {
-		console.log('Processing was too long, starting ASAP');
-		query();
-	}*/
-
-//function callEveryHour() {
-    //setInterval(query, 1000 * 60 * 60); // Каждый час
-	//setInterval(query, interval); // Каждую минуту
-//}
-
 process();
-//callEveryHour();
-/*var nextDate = new Date();
-if (nextDate.getMinutes() === 0) {  				// для часов
-//if (nextDate.getSeconds() === 0) {                // для минут
-    callEveryHour()
-} else {
-    nextDate.setHours(nextDate.getHours() + 1);   // для часов
-    nextDate.setMinutes(0); 					  // для часов
-	//nextDate.setMinutes(nextDate.getMinutes() + 1); // для минут
-    nextDate.setSeconds(0);
 
-    var difference = nextDate - new Date();
-    setTimeout(callEveryHour, difference);
-}*/
-
+module.exports = {
+	getData: getData,
+	query: query,
+	ffmpegSync: ffmpegSync
+};
